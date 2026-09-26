@@ -19,6 +19,23 @@ export default function App() {
   const [backendOnline, setBackendOnline] = useState(null);
   const [securitySettings, setSecuritySettings] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('app-theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('app-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   const addLog = useCallback((message) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -227,6 +244,15 @@ export default function App() {
             title="Configure VirusTotal and Google Safe Browsing API Keys"
           >
             API Settings
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-theme-toggle"
+            onClick={toggleTheme}
+            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Theme`}
+          >
+            {theme === 'dark' ? 'Light Theme' : 'Dark Theme'}
           </button>
 
           <span
