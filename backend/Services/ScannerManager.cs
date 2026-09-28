@@ -100,6 +100,7 @@ namespace FileAnomalyScanner.Services
                 VirusTotalReport? vtReport = null;
                 SafeBrowsingReport? sbReport = null;
                 string sha256 = string.Empty;
+                string? proxyTelemetryHash = null;
 
                 try
                 {
@@ -109,7 +110,14 @@ namespace FileAnomalyScanner.Services
                     entropy = streamingResult.OverallEntropy;
                     peakBlockEntropy = streamingResult.PeakBlockEntropy;
 
-                    Log(consoleLogs, "INSPECT", $"Ingesting [{totalFiles}]: {displayPath} ({item.SizeBytes} bytes | SHA256: {sha256[..12]}... | Entropy: {entropy:F2}/8.00 | Peak: {peakBlockEntropy:F2})...");
+                    proxyTelemetryHash = DemoTelemetryProxy.GetProxyHash(item.FileName, displayPath);
+                    if (!string.IsNullOrWhiteSpace(proxyTelemetryHash))
+                    {
+                        _virusTotalService.RegisterProxyMapping(sha256, proxyTelemetryHash);
+                        Log(consoleLogs, "DEMO-PROXY", $"Mapped demo file '{displayPath}' (physical SHA-256: {sha256[..Math.Min(12, sha256.Length)]}...) to public telemetry hash: {proxyTelemetryHash[..12]}...");
+                    }
+
+                    Log(consoleLogs, "INSPECT", $"Ingesting [{totalFiles}]: {displayPath} ({item.SizeBytes} bytes | SHA256: {sha256[..Math.Min(12, sha256.Length)]}... | Entropy: {entropy:F2}/8.00 | Peak: {peakBlockEntropy:F2})...");
 
                     // Assess overall entropy
                     var (isEntropyAnomalous, entropySeverity, entropyDesc) = _entropyCalculator.AssessEntropy(item.FileName, entropy);
@@ -127,7 +135,8 @@ namespace FileAnomalyScanner.Services
                             Severity = entropySeverity,
                             Entropy = entropy,
                             ClaimedExtension = ext,
-                            Sha256Hash = sha256
+                            Sha256Hash = sha256,
+                            TelemetryLookupHash = proxyTelemetryHash
                         });
                     }
 
@@ -146,7 +155,8 @@ namespace FileAnomalyScanner.Services
                             Severity = AnomalySeverity.High,
                             Entropy = entropy,
                             ClaimedExtension = ext,
-                            Sha256Hash = sha256
+                            Sha256Hash = sha256,
+                            TelemetryLookupHash = proxyTelemetryHash
                         });
                     }
 
@@ -175,7 +185,8 @@ namespace FileAnomalyScanner.Services
                             ClaimedExtension = ext,
                             DetectedType = detectedType,
                             IsMagicByteMismatch = true,
-                            Sha256Hash = sha256
+                            Sha256Hash = sha256,
+                            TelemetryLookupHash = proxyTelemetryHash
                         });
                     }
 
@@ -184,6 +195,7 @@ namespace FileAnomalyScanner.Services
                     foreach (var sigAnomaly in signatureAnomalies)
                     {
                         sigAnomaly.Sha256Hash = sha256;
+                        sigAnomaly.TelemetryLookupHash = proxyTelemetryHash;
                         Log(consoleLogs, "ALERT", $"Signature anomaly on '{displayPath}': {sigAnomaly.Title}");
                         fileAnomalies.Add(sigAnomaly);
                     }
@@ -201,6 +213,7 @@ namespace FileAnomalyScanner.Services
                             astAnomaly.Sha256Hash = sha256;
                             astAnomaly.Entropy = entropy;
                             astAnomaly.ClaimedExtension = ext;
+                            astAnomaly.TelemetryLookupHash = proxyTelemetryHash;
                             Log(consoleLogs, "AST", $"[AST-SECURITY] {astAnomaly.Title} on '{displayPath}'");
                             fileAnomalies.Add(astAnomaly);
                         }
@@ -214,6 +227,7 @@ namespace FileAnomalyScanner.Services
                         foreach (var archAnomaly in archiveAnomalies)
                         {
                             archAnomaly.Sha256Hash = sha256;
+                            archAnomaly.TelemetryLookupHash = proxyTelemetryHash;
                             Log(consoleLogs, "ALERT", $"Archive hazard in '{displayPath}': {archAnomaly.Title} ({archAnomaly.Details})");
                             fileAnomalies.Add(archAnomaly);
                         }
@@ -228,11 +242,13 @@ namespace FileAnomalyScanner.Services
                         vtLookupsCount < settings.MaxVirusTotalLookupsPerBatch
                     );
 
+                    var vtLookupHash = !string.IsNullOrWhiteSpace(proxyTelemetryHash) ? proxyTelemetryHash : sha256;
+
                     if (shouldQueryVt && vtLookupsCount < settings.MaxVirusTotalLookupsPerBatch)
                     {
                         vtLookupsCount++;
-                        Log(consoleLogs, "VIRUSTOTAL", $"Querying VirusTotal v3 for hash {sha256[..12]}... [{vtLookupsCount}/{settings.MaxVirusTotalLookupsPerBatch}]");
-                        vtReport = await _virusTotalService.LookupFileHashAsync(sha256, cancellationToken);
+                        Log(consoleLogs, "VIRUSTOTAL", $"Querying VirusTotal v3 for hash {vtLookupHash[..Math.Min(12, vtLookupHash.Length)]}... [{vtLookupsCount}/{settings.MaxVirusTotalLookupsPerBatch}]");
+                        vtReport = await _virusTotalService.LookupFileHashAsync(vtLookupHash, cancellationToken);
 
                         if (vtReport.MaliciousCount > 0 || vtReport.SuspiciousCount > 0)
                         {
@@ -256,6 +272,7 @@ namespace FileAnomalyScanner.Services
                                 ClaimedExtension = ext,
                                 DetectedType = detectedType,
                                 Sha256Hash = sha256,
+                                TelemetryLookupHash = proxyTelemetryHash,
                                 VirusTotalResult = vtReport
                             });
                         }
@@ -276,9 +293,9 @@ namespace FileAnomalyScanner.Services
                     {
                         vtReport = new VirusTotalReport
                         {
-                            Sha256 = sha256,
+                            Sha256 = vtLookupHash,
                             Status = "NotConfigured",
-                            Permalink = $"https://www.virustotal.com/gui/file/{sha256}",
+                            Permalink = $"https://www.virustotal.com/gui/file/{vtLookupHash}",
                             ErrorMessage = "VirusTotal API key not configured."
                         };
                     }
@@ -309,6 +326,7 @@ namespace FileAnomalyScanner.Services
                                         Entropy = entropy,
                                         ClaimedExtension = ext,
                                         Sha256Hash = sha256,
+                                        TelemetryLookupHash = proxyTelemetryHash,
                                         SafeBrowsingMatch = match
                                     });
                                 }
@@ -374,6 +392,7 @@ namespace FileAnomalyScanner.Services
                         FilePath = displayPath,
                         SizeBytes = item.SizeBytes,
                         Sha256 = sha256,
+                        TelemetryLookupHash = proxyTelemetryHash,
                         Entropy = entropy,
                         PeakBlockEntropy = peakBlockEntropy,
                         DetectedType = detectedType,
@@ -385,6 +404,14 @@ namespace FileAnomalyScanner.Services
                         LocalRiskScore = localRiskScore,
                         IsNovelZeroDaySuspicion = isZeroDaySuspicion
                     });
+
+                    foreach (var record in fileAnomalies)
+                    {
+                        if (string.IsNullOrWhiteSpace(record.TelemetryLookupHash))
+                        {
+                            record.TelemetryLookupHash = proxyTelemetryHash;
+                        }
+                    }
 
                     anomalies.AddRange(fileAnomalies);
                 }
@@ -401,7 +428,8 @@ namespace FileAnomalyScanner.Services
                         Details = faEx.Message,
                         Severity = faEx.Severity,
                         ClaimedExtension = ext,
-                        Sha256Hash = sha256
+                        Sha256Hash = sha256,
+                        TelemetryLookupHash = proxyTelemetryHash
                     });
                 }
                 catch (Exception ex)
@@ -417,7 +445,8 @@ namespace FileAnomalyScanner.Services
                         Details = ex.Message,
                         Severity = AnomalySeverity.Low,
                         ClaimedExtension = ext,
-                        Sha256Hash = sha256
+                        Sha256Hash = sha256,
+                        TelemetryLookupHash = proxyTelemetryHash
                     });
                 }
             }

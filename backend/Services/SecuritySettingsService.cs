@@ -6,16 +6,20 @@ using System.Threading.Tasks;
 using FileAnomalyScanner.Interfaces;
 using FileAnomalyScanner.Models;
 
+using Microsoft.Extensions.Configuration;
+
 namespace FileAnomalyScanner.Services
 {
     public class SecuritySettingsService : ISecuritySettingsService
     {
         private readonly string _settingsFilePath;
         private readonly SemaphoreSlim _lock = new(1, 1);
+        private readonly IConfiguration? _configuration;
         private SecuritySettings _cachedSettings;
 
-        public SecuritySettingsService()
+        public SecuritySettingsService(IConfiguration? configuration = null)
         {
+            _configuration = configuration;
             _settingsFilePath = Path.Combine(AppContext.BaseDirectory, "security-settings.json");
             _cachedSettings = LoadSettingsInternal();
         }
@@ -90,16 +94,24 @@ namespace FileAnomalyScanner.Services
                     var loaded = JsonSerializer.Deserialize<SecuritySettings>(json);
                     if (loaded != null)
                     {
-                        // Check environment variables as fallback if empty
+                        // Check configuration and environment variables as fallback if empty
                         if (string.IsNullOrWhiteSpace(loaded.VirusTotalApiKey))
                         {
+                            var cfgVt = _configuration?["SecuritySettings:VirusTotalApiKey"] ?? _configuration?["VIRUSTOTAL_API_KEY"];
                             var envVt = Environment.GetEnvironmentVariable("VIRUSTOTAL_API_KEY");
-                            if (!string.IsNullOrWhiteSpace(envVt)) loaded.VirusTotalApiKey = envVt.Trim();
+                            if (!string.IsNullOrWhiteSpace(cfgVt) && !cfgVt.Contains("YOUR_VIRUSTOTAL_API_KEY", StringComparison.OrdinalIgnoreCase))
+                                loaded.VirusTotalApiKey = cfgVt.Trim();
+                            else if (!string.IsNullOrWhiteSpace(envVt))
+                                loaded.VirusTotalApiKey = envVt.Trim();
                         }
                         if (string.IsNullOrWhiteSpace(loaded.GoogleSafeBrowsingApiKey))
                         {
+                            var cfgSb = _configuration?["SecuritySettings:GoogleSafeBrowsingApiKey"] ?? _configuration?["GOOGLE_SAFE_BROWSING_API_KEY"];
                             var envSb = Environment.GetEnvironmentVariable("GOOGLE_SAFE_BROWSING_API_KEY");
-                            if (!string.IsNullOrWhiteSpace(envSb)) loaded.GoogleSafeBrowsingApiKey = envSb.Trim();
+                            if (!string.IsNullOrWhiteSpace(cfgSb) && !cfgSb.Contains("YOUR_GOOGLE_SAFE_BROWSING", StringComparison.OrdinalIgnoreCase))
+                                loaded.GoogleSafeBrowsingApiKey = cfgSb.Trim();
+                            else if (!string.IsNullOrWhiteSpace(envSb))
+                                loaded.GoogleSafeBrowsingApiKey = envSb.Trim();
                         }
                         return loaded;
                     }
@@ -111,10 +123,20 @@ namespace FileAnomalyScanner.Services
             }
 
             var defaults = new SecuritySettings();
-            var vtFromEnv = Environment.GetEnvironmentVariable("VIRUSTOTAL_API_KEY");
-            if (!string.IsNullOrWhiteSpace(vtFromEnv)) defaults.VirusTotalApiKey = vtFromEnv.Trim();
-            var sbFromEnv = Environment.GetEnvironmentVariable("GOOGLE_SAFE_BROWSING_API_KEY");
-            if (!string.IsNullOrWhiteSpace(sbFromEnv)) defaults.GoogleSafeBrowsingApiKey = sbFromEnv.Trim();
+            var cfgVtDef = _configuration?["SecuritySettings:VirusTotalApiKey"] ?? _configuration?["VIRUSTOTAL_API_KEY"];
+            var vtEnv = Environment.GetEnvironmentVariable("VIRUSTOTAL_API_KEY");
+            if (!string.IsNullOrWhiteSpace(cfgVtDef) && !cfgVtDef.Contains("YOUR_VIRUSTOTAL_API_KEY", StringComparison.OrdinalIgnoreCase))
+                defaults.VirusTotalApiKey = cfgVtDef.Trim();
+            else if (!string.IsNullOrWhiteSpace(vtEnv))
+                defaults.VirusTotalApiKey = vtEnv.Trim();
+
+            var cfgSbDef = _configuration?["SecuritySettings:GoogleSafeBrowsingApiKey"] ?? _configuration?["GOOGLE_SAFE_BROWSING_API_KEY"];
+            var sbEnv = Environment.GetEnvironmentVariable("GOOGLE_SAFE_BROWSING_API_KEY");
+            if (!string.IsNullOrWhiteSpace(cfgSbDef) && !cfgSbDef.Contains("YOUR_GOOGLE_SAFE_BROWSING", StringComparison.OrdinalIgnoreCase))
+                defaults.GoogleSafeBrowsingApiKey = cfgSbDef.Trim();
+            else if (!string.IsNullOrWhiteSpace(sbEnv))
+                defaults.GoogleSafeBrowsingApiKey = sbEnv.Trim();
+
             return defaults;
         }
 

@@ -547,7 +547,7 @@ export default function AnomalyTable({ anomalies, summary, files, fileItems = []
                         {isFileEradicated ? (
                           <div className="eradicated-label font-mono">Payload Destroyed</div>
                         ) : (
-                          (file.highestSeverity >= 3 || file.isNovelZeroDaySuspicion || file.status?.includes('Malicious') || file.status?.includes('High')) && (
+                          (file.anomalyCount > 0 || file.highestSeverity >= 2 || file.isNovelZeroDaySuspicion || file.status?.includes('Malicious') || file.status?.includes('High') || file.telemetryLookupHash) && (
                             <div style={{ marginTop: '4px' }}>
                               <button
                                 type="button"

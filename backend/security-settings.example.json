@@ -1,0 +1,8 @@
+{
+  "VirusTotalApiKey": "YOUR_VIRUSTOTAL_API_KEY_HERE",
+  "VirusTotalEnabled": true,
+  "GoogleSafeBrowsingApiKey": "YOUR_GOOGLE_SAFE_BROWSING_API_KEY_HERE",
+  "GoogleSafeBrowsingEnabled": true,
+  "MaxVirusTotalLookupsPerBatch": 5,
+  "CheckEmbeddedUrlsWithSafeBrowsing": true
+}

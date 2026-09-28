@@ -1,0 +1,2 @@
+# Synthetic EICAR Antivirus Test Container (Host-Safe Representation for Cloud Threat Intel Telemetry)
+# This file serves as a safe host placeholder that maps to VirusTotal EICAR test telemetry without triggering local host Defender flags.

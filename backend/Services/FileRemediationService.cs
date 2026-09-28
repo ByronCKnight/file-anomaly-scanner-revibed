@@ -31,7 +31,34 @@ namespace FileAnomalyScanner.Services
             string fullPath;
             try
             {
-                fullPath = Path.GetFullPath(filePath);
+                if (File.Exists(filePath))
+                {
+                    fullPath = Path.GetFullPath(filePath);
+                }
+                else
+                {
+                    var candidateRoots = new[]
+                    {
+                        Directory.GetCurrentDirectory(),
+                        AppContext.BaseDirectory,
+                        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..")),
+                        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..")),
+                        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, ".."))
+                    };
+
+                    string? resolved = null;
+                    foreach (var rootDir in candidateRoots)
+                    {
+                        var candidate = Path.GetFullPath(Path.Combine(rootDir, filePath));
+                        if (File.Exists(candidate))
+                        {
+                            resolved = candidate;
+                            break;
+                        }
+                    }
+
+                    fullPath = resolved ?? Path.GetFullPath(filePath);
+                }
             }
             catch (Exception ex)
             {
@@ -185,10 +212,30 @@ namespace FileAnomalyScanner.Services
                 return (false, "Target cannot reside inside Program Files (x86).");
             }
 
+            // Prevent shredding the scanner's own running process executable or application assemblies
+            var currentExe = Environment.ProcessPath;
+            if (!string.IsNullOrEmpty(currentExe) && string.Equals(fullPath, currentExe, StringComparison.OrdinalIgnoreCase))
+            {
+                return (false, "Target cannot be the running scanner executable binary.");
+            }
+
             var baseDir = AppContext.BaseDirectory.TrimEnd('\\', '/');
             if (fullPath.StartsWith(baseDir, StringComparison.OrdinalIgnoreCase))
             {
-                return (false, "Target cannot be part of the host scanner application binaries.");
+                var relative = Path.GetRelativePath(baseDir, fullPath).Replace('\\', '/');
+                bool isDemoFolder = relative.StartsWith("DemoFolder/", StringComparison.OrdinalIgnoreCase) ||
+                                    relative.StartsWith("DemoFolder", StringComparison.OrdinalIgnoreCase);
+
+                if (!isDemoFolder)
+                {
+                    var ext = Path.GetExtension(fullPath).ToLowerInvariant();
+                    if (ext is ".exe" or ".dll" or ".deps.json" or ".runtimeconfig.json" or ".pdb" ||
+                        relative.StartsWith("wwwroot/", StringComparison.OrdinalIgnoreCase) ||
+                        relative.StartsWith("runtimes/", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return (false, "Target cannot be part of the host scanner application binaries.");
+                    }
+                }
             }
 
             return (true, string.Empty);

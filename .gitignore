@@ -4,6 +4,7 @@
 
 # --- Visual Studio & IDE Caches ---
 .vs/
+**/.vs/
 *.user
 *.suo
 *.userosscache
@@ -11,15 +12,19 @@
 .vscode/
 
 # --- .NET Build Outputs & Debug Symbols ---
+bin/
+obj/
 **/[Bb]in/
 **/[Oo]bj/
 *.pdb
 *.deps.json
 *.runtimeconfig.json
 
-# --- WebView2 User Profile & Telemetry Data ---
+# --- WebView2 User Profile & Browser Cache Folders ---
 *.WebView2/
+**/*.WebView2/
 EBWebView/
+**/EBWebView/
 
 # --- Frontend / Node ---
 **/node_modules/
@@ -37,14 +42,26 @@ ehthumbs.db
 Desktop.ini
 .DS_Store
 
-# --- Security & Local Configuration (Never Commit API Keys or Local Settings) ---
+# --- Security & Local Configuration (Never Commit API Keys or Local Secrets) ---
 **/security-settings*.json
 security-settings.json
 appsettings.user.json
 appsettings.Development.json
+appsettings.Production.json
+appsettings.local.json
+appsettings.*.local.json
 *.local.json
 *.key
 *.pem
+*.pfx
+*.cer
+*.crt
+
+# --- Template Whitelists (Allow Example Config Templates) ---
+!**/appsettings.Example.json
+!**/security-settings.example.json
+!appsettings.Example.json
+!security-settings.example.json
 
 # --- Allow the 1-Click Desktop Launcher Executable in the Root ---
 !/FileAnomalyScanner.exe

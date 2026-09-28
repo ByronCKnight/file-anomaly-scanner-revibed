@@ -684,6 +684,7 @@ body {
   justify-content: space-between;
   align-items: center;
   background-color: #f8f9fa;
+  flex-shrink: 0;
 }
 
 .modal-title-wrap {
@@ -736,6 +737,7 @@ body {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .modal-loading {
@@ -1118,8 +1120,8 @@ body {
 
 .vt-summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
   margin-bottom: 12px;
 }
 
@@ -1127,6 +1129,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.vt-sum-cell-hash {
+  grid-column: 1 / -1;
 }
 
 .vt-sum-lbl {
@@ -1155,16 +1161,38 @@ body {
 .hash-display {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  background-color: rgba(0, 0, 0, 0.03);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+}
+
+.hash-text {
+  font-family: monospace;
+  font-size: 11px;
+  word-break: break-all;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
 }
 
 .btn-copy {
+  flex-shrink: 0;
+  white-space: nowrap;
   background-color: #e9ecef;
   border: 1px solid #ced4da;
-  padding: 2px 6px;
-  font-size: 10px;
-  border-radius: 3px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
   cursor: pointer;
+  line-height: 1.2;
+  transition: all 0.15s ease;
 }
 
 .btn-copy:hover {
@@ -1492,11 +1520,18 @@ body {
 }
 
 .cs-modal-body {
-  padding: 16px 20px;
+  padding: 18px 24px 32px 24px;
   overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
+}
+
+.cs-modal-body > * {
+  flex-shrink: 0;
 }
 
 /* Info Summary Card */
@@ -1517,6 +1552,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.cs-info-cell-hash {
+  grid-column: 1 / -1;
 }
 
 .cs-info-lbl {
@@ -1645,6 +1684,8 @@ body {
   border-bottom: 1px solid #dee2e6;
   padding-bottom: 0;
   overflow-x: auto;
+  flex-shrink: 0;
+  min-height: 38px;
 }
 
 .cs-nav-tab {
@@ -1679,15 +1720,22 @@ body {
 .cs-tab-panel {
   background-color: #ffffff;
   border: 1px solid #dee2e6;
-  border-radius: 0 0 4px 4px;
-  padding: 14px;
+  border-radius: 0 0 6px 6px;
+  padding: 18px 20px 24px 20px;
   min-height: 180px;
+  height: auto;
+  box-sizing: border-box;
+  overflow: visible;
+  flex-shrink: 0;
+  margin-bottom: 8px;
 }
 
 .cs-panel-content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  height: auto;
+  flex-shrink: 0;
 }
 
 .cs-stat-row {
@@ -1728,12 +1776,18 @@ body {
 .cs-guidance-box {
   background-color: #f8f9fa;
   border: 1px solid #dee2e6;
-  border-left: 3px solid #0d6efd;
-  padding: 10px 14px;
-  border-radius: 4px;
+  border-left: 4px solid #0d6efd;
+  padding: 16px 20px 20px 20px;
+  border-radius: 6px;
   font-size: 12px;
   color: #495057;
-  line-height: 1.45;
+  line-height: 1.6;
+  margin-top: 10px;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  flex-shrink: 0;
 }
 
 .cs-guidance-box strong {
@@ -1741,12 +1795,18 @@ body {
 }
 
 .cs-guidance-box ul {
-  margin: 6px 0 0 0;
-  padding-left: 18px;
+  margin: 10px 0 0 0;
+  padding-left: 20px;
 }
 
 .cs-guidance-box li {
-  margin-bottom: 4px;
+  margin-bottom: 10px;
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+.cs-guidance-box li:last-child {
+  margin-bottom: 0;
 }
 
 .cs-empty-msg {
@@ -1845,6 +1905,7 @@ body {
   background-color: #f8f9fa;
   border-top: 1px solid #dee2e6;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .cs-footer-links {
@@ -2446,6 +2507,168 @@ body {
   color: var(--text-main);
 }
 
+/* VirusTotal Badges & Detections in Dark Theme */
+[data-theme="dark"] .vt-malicious-badge {
+  background-color: #3b1419;
+  color: #f85149;
+  border-color: #da3633;
+}
 
+[data-theme="dark"] .vt-malicious-badge:hover {
+  background-color: #4c1a21;
+  border-color: #f85149;
+}
 
+[data-theme="dark"] .threat-label-badge {
+  background-color: #3b1419;
+  color: #f85149;
+  border-color: #da3633;
+}
 
+[data-theme="dark"] .stat-malicious {
+  background-color: #3b1419;
+  border-color: #da3633;
+  color: #f85149;
+}
+
+[data-theme="dark"] .stat-suspicious {
+  background-color: #362912;
+  border-color: #9e6a03;
+  color: #e3b341;
+}
+
+[data-theme="dark"] .stat-undetected {
+  background-color: var(--surface-secondary);
+  border-color: var(--border-color);
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .stat-harmless {
+  background-color: #12331b;
+  border-color: #238636;
+  color: #56d364;
+}
+
+[data-theme="dark"] .stat-total {
+  background-color: #12283a;
+  border-color: #1f6feb;
+  color: #58a6ff;
+}
+
+[data-theme="dark"] .stat-reputation {
+  background-color: #271d42;
+  border-color: #5c3bb5;
+  color: #d0bfff;
+}
+
+[data-theme="dark"] .vendor-detection-sig {
+  background-color: #2b1216;
+  color: #f85149;
+  border-color: #671e24;
+}
+
+[data-theme="dark"] .vendor-table-container thead th {
+  background-color: var(--surface-secondary);
+  color: var(--text-heading);
+  border-color: var(--border-card);
+}
+
+/* Cloud Sandbox Modal Verdict Pills & Badges in Dark Theme */
+[data-theme="dark"] .cs-verdict-pill.pill-danger {
+  background-color: #3b1419;
+  color: #f85149;
+  border-color: #da3633;
+}
+
+[data-theme="dark"] .cs-verdict-pill.pill-success {
+  background-color: #12331b;
+  color: #56d364;
+  border-color: #238636;
+}
+
+[data-theme="dark"] .cs-verdict-pill.pill-warning {
+  background-color: #362912;
+  color: #e3b341;
+  border-color: #9e6a03;
+}
+
+[data-theme="dark"] .cs-metric-num.text-critical {
+  color: #f85149;
+}
+
+[data-theme="dark"] .badge-eradicated {
+  background-color: #3b1419 !important;
+  color: #f85149 !important;
+  border-color: #da3633 !important;
+}
+
+[data-theme="dark"] .badge-dismissed {
+  background-color: #12331b !important;
+  color: #56d364 !important;
+  border-color: #238636 !important;
+}
+
+[data-theme="dark"] .zero-day-badge {
+  background-color: #362912;
+  color: #e3b341;
+  border-color: #9e6a03;
+}
+
+/* Hash Display & Copy Buttons in Dark Theme */
+[data-theme="dark"] .hash-display {
+  background-color: var(--input-bg);
+  border-color: var(--border-card);
+}
+
+[data-theme="dark"] .hash-text {
+  color: var(--text-heading);
+}
+
+[data-theme="dark"] .btn-copy {
+  background-color: var(--surface-secondary);
+  border-color: var(--border-color);
+  color: var(--text-heading);
+}
+
+[data-theme="dark"] .btn-copy:hover {
+  background-color: var(--surface-tertiary);
+  color: #ffffff;
+  border-color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Compliance & Legal Attribution Footers
+   ========================================================================== */
+.app-compliance-footer {
+  margin-top: 36px;
+  padding: 18px 20px 24px;
+  border-top: 1px solid var(--border-light);
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.app-compliance-footer-text {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  letter-spacing: 0.25px;
+  line-height: 1.5;
+  font-weight: 500;
+  max-width: 900px;
+}
+
+.cs-compliance-footer {
+  padding: 8px 18px 10px;
+  background-color: var(--surface-secondary);
+  border-top: 1px dashed var(--border-card);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  text-align: center;
+  letter-spacing: 0.2px;
+  line-height: 1.45;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  flex-shrink: 0;
+}

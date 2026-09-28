@@ -13,5 +13,7 @@ namespace FileAnomalyScanner.Interfaces
         Task<string?> SubmitStreamForAnalysisAsync(string fileName, System.IO.Stream stream, CancellationToken cancellationToken = default);
         Task<CloudSandboxReportDto?> GetBehaviorSummaryAsync(string sha256, CancellationToken cancellationToken = default);
         Task<AnalysisStatusDto?> GetAnalysisStatusAsync(string analysisId, CancellationToken cancellationToken = default);
+        void RegisterProxyMapping(string physicalHash, string proxyHash);
+        string ResolveProxyHash(string hash);
     }
 }

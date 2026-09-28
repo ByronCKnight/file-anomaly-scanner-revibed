@@ -25,12 +25,23 @@ export default function App() {
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark';
     }
-    return 'light';
+    return 'dark';
   });
+
+  const notifyNativeHostOfTheme = (currentTheme) => {
+    try {
+      if (window.chrome?.webview?.postMessage) {
+        window.chrome.webview.postMessage(JSON.stringify({ type: 'THEME_CHANGED', theme: currentTheme }));
+      }
+    } catch {
+      // Browser environment fallback
+    }
+  };
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('app-theme', theme);
+    notifyNativeHostOfTheme(theme);
   }, [theme]);
 
   const toggleTheme = () => {
@@ -308,6 +319,13 @@ export default function App() {
         fileItems={fileItems}
         onLog={addLog}
       />
+
+      {/* In-App Compliance & Legal Disclaimer Footer */}
+      <footer className="app-compliance-footer">
+        <p className="app-compliance-footer-text">
+          Threat Telemetry powered by VirusTotal v3 API (Non-Commercial) • Adversarial Mapping via MITRE ATT&amp;CK® • Educational &amp; Defensive Research Use Only
+        </p>
+      </footer>
 
       {/* Security API Settings Modal */}
       <SecuritySettingsModal

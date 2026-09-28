@@ -219,3 +219,14 @@ Click **Load Synthetic Test Folder** in the top bar to verify the complete detec
 * **Desktop Shell**: WPF (Windows Presentation Foundation), Microsoft.Web.WebView2.
 * **Frontend**: React 18, Vite, Vanilla CSS (Clean Light Security Theme), REST API Client.
 * **Threat Intelligence**: VirusTotal v3 REST API, Google Safe Browsing v4 REST API.
+
+---
+
+## License & Compliance
+
+* **Software License**: Distributed under the [MIT License](LICENSE) with an explicit Cybersecurity & File Remediation Legal Disclaimer.
+* **Third-Party Notices**: Comprehensive third-party attributions, runtime notices, and API terms of service compliance are detailed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+* **Attributions**:
+  - Threat telemetry powered by the **VirusTotal v3 REST API** (Chronicle Security / Google Cloud - Non-Commercial terms).
+  - Adversarial behavioral tactics and techniques mapped via the **MITRE ATT&CK® Framework** (© The MITRE Corporation).
+  - Pipeline verification powered by the inert **EICAR Standard Anti-Virus Test File** specification.

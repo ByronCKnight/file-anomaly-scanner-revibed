@@ -40,6 +40,7 @@ namespace FileAnomalyScanner.Models
         public string FilePath { get; set; } = string.Empty;
         public long SizeBytes { get; set; }
         public string Sha256 { get; set; } = string.Empty;
+        public string? TelemetryLookupHash { get; set; }
         public double Entropy { get; set; }
         public double PeakBlockEntropy { get; set; }
         public string DetectedType { get; set; } = string.Empty;

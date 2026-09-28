@@ -6,6 +6,7 @@ namespace FileAnomalyScanner.Models
     public class CloudSandboxReportDto
     {
         public string Sha256 { get; set; } = string.Empty;
+        public string? TelemetryLookupHash { get; set; }
         public string Status { get; set; } = "Available"; // Available, NotFound, Pending, RateLimited, Error, NotConfigured
         public List<string> SandboxEngines { get; set; } = new();
         public List<ProcessExecutionDto> ProcessesCreated { get; set; } = new();
@@ -98,13 +99,14 @@ namespace FileAnomalyScanner.Models
 
     public class VerdictSummaryDto
     {
-        public string Verdict { get; set; } = "LikelyFalsePositive"; // TruePositive, LikelyFalsePositive, Suspicious, Inconclusive
+        public string Verdict { get; set; } = "Unanalyzed"; // TruePositive, LikelyFalsePositive, Unanalyzed
         public int ConfidenceScore { get; set; } = 50; // 0 - 100
         public string Title { get; set; } = string.Empty;
         public string Justification { get; set; } = string.Empty;
         public List<string> Indicators { get; set; } = new();
         public bool IsTruePositive => Verdict == "TruePositive";
         public bool IsLikelyFalsePositive => Verdict == "LikelyFalsePositive";
+        public bool IsUnanalyzed => Verdict == "Unanalyzed" || Verdict == "Inconclusive";
     }
 
     public class RemediationRequestDto

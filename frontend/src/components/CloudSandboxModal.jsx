@@ -17,14 +17,23 @@ export default function CloudSandboxModal({
   const [eradicationError, setEradicationError] = useState(null);
   const [confirmEradicate, setConfirmEradicate] = useState(false);
 
-  const sha256 = targetItem?.sha256Hash || targetItem?.sha256;
+  const [copiedKey, setCopiedKey] = useState(null);
+  const copyToClipboard = (text, key) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const physicalSha256 = targetItem?.sha256Hash || targetItem?.sha256;
+  const lookupHash = targetItem?.telemetryLookupHash || physicalSha256;
   const filePath = targetItem?.filePath;
   const fileName = targetItem?.fileName || (filePath ? filePath.split(/[\\/]/).pop() : 'Suspicious Payload');
 
   useEffect(() => {
     let isMounted = true;
     async function loadBehavior() {
-      if (!sha256) {
+      if (!lookupHash) {
         setFetchError('No SHA-256 hash available for this file.');
         setLoading(false);
         return;
@@ -33,7 +42,7 @@ export default function CloudSandboxModal({
       setLoading(true);
       setFetchError(null);
       try {
-        const data = await fetchCloudBehavior(sha256);
+        const data = await fetchCloudBehavior(lookupHash);
         if (isMounted) {
           setReport(data);
           if (data.verdictSummary?.verdict === 'TruePositive') {
@@ -55,7 +64,7 @@ export default function CloudSandboxModal({
     return () => {
       isMounted = false;
     };
-  }, [sha256]);
+  }, [lookupHash]);
 
   const handleEradicate = async () => {
     if (!filePath) {
@@ -71,7 +80,7 @@ export default function CloudSandboxModal({
     }
 
     try {
-      const receipt = await eradicateFile(filePath, sha256);
+      const receipt = await eradicateFile(filePath, physicalSha256);
       setEradicationReceipt(receipt);
       setConfirmEradicate(false);
 
@@ -97,14 +106,15 @@ export default function CloudSandboxModal({
       onLog(`[ADJUDICATION] File '${fileName}' marked as Safe / False Positive by operator.`);
     }
     if (onDismiss) {
-      onDismiss(filePath, sha256);
+      onDismiss(filePath, physicalSha256);
     }
     onClose();
   };
 
   const verdict = report?.verdictSummary;
-  const isTruePositive = verdict?.verdict === 'TruePositive';
-  const isLikelyFalsePositive = verdict?.verdict === 'LikelyFalsePositive';
+  const isTruePositive = verdict?.verdict === 'TruePositive' || verdict?.isTruePositive;
+  const isLikelyFalsePositive = verdict?.verdict === 'LikelyFalsePositive' || verdict?.isLikelyFalsePositive;
+  const isUnanalyzed = verdict?.verdict === 'Unanalyzed' || verdict?.isUnanalyzed || (!isTruePositive && !isLikelyFalsePositive);
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -173,10 +183,36 @@ export default function CloudSandboxModal({
                   <span className="cs-info-lbl">Filesystem Path:</span>
                   <span className="cs-info-val font-mono">{filePath || 'Uploaded File'}</span>
                 </div>
-                <div className="cs-info-cell">
-                  <span className="cs-info-lbl">SHA-256:</span>
-                  <span className="cs-info-val font-mono">{sha256}</span>
+                <div className="cs-info-cell cs-info-cell-hash">
+                  <span className="cs-info-lbl">Physical SHA-256:</span>
+                  <div className="hash-display">
+                    <span className="hash-text font-mono">{physicalSha256}</span>
+                    <button
+                      type="button"
+                      className="btn-copy"
+                      onClick={() => copyToClipboard(physicalSha256, 'physical')}
+                      title="Copy Physical SHA-256"
+                    >
+                      {copiedKey === 'physical' ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
                 </div>
+                {targetItem?.telemetryLookupHash && (
+                  <div className="cs-info-cell cs-info-cell-hash">
+                    <span className="cs-info-lbl">Telemetry Proxy Hash:</span>
+                    <div className="hash-display">
+                      <span className="hash-text font-mono text-cyan">{targetItem.telemetryLookupHash}</span>
+                      <button
+                        type="button"
+                        className="btn-copy"
+                        onClick={() => copyToClipboard(targetItem.telemetryLookupHash, 'telemetry')}
+                        title="Copy Telemetry Proxy Hash"
+                      >
+                        {copiedKey === 'telemetry' ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -203,8 +239,8 @@ export default function CloudSandboxModal({
                   {isTruePositive
                     ? 'CONFIRMED THREAT (TRUE POSITIVE)'
                     : isLikelyFalsePositive
-                    ? 'BENIGN DYNAMIC BEHAVIOR (LIKELY FALSE POSITIVE)'
-                    : 'TELEMETRY INCONCLUSIVE'}
+                    ? 'VERIFIED BENIGN (LIKELY FALSE POSITIVE)'
+                    : 'UNANALYZED / NO CLOUD TELEMETRY'}
                 </span>
                 {verdict?.confidenceScore && (
                   <span className="cs-confidence-tag">
@@ -546,6 +582,9 @@ export default function CloudSandboxModal({
                 <strong>Eradication Error:</strong> {eradicationError}
               </div>
             )}
+
+            {/* Bottom scroll buffer ensuring complete clearance above footer */}
+            <div className="cs-scroll-bottom-buffer" style={{ height: '12px', flexShrink: 0 }} />
           </div>
         )}
 
@@ -616,6 +655,11 @@ export default function CloudSandboxModal({
               {eradicationReceipt ? 'Done' : 'Close'}
             </button>
           </div>
+        </div>
+
+        {/* Compliance & Regulatory Attribution Footer */}
+        <div className="cs-compliance-footer">
+          Threat Telemetry powered by VirusTotal v3 API (Non-Commercial) • Adversarial Mapping via MITRE ATT&amp;CK® • Educational &amp; Defensive Research Use Only
         </div>
       </div>
     </div>

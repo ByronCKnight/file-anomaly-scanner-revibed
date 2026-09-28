@@ -54,10 +54,10 @@ export default function VendorDetectionsModal({ item, onClose }) {
                 <span className="vt-sum-lbl">Path:</span>
                 <span className="vt-sum-val font-mono">{item.filePath}</span>
               </div>
-              <div className="vt-sum-cell">
+              <div className="vt-sum-cell vt-sum-cell-hash">
                 <span className="vt-sum-lbl">SHA-256:</span>
-                <span className="vt-sum-val font-mono hash-display">
-                  {sha}
+                <div className="hash-display">
+                  <span className="hash-text font-mono">{sha}</span>
                   <button
                     type="button"
                     className="btn-copy"
@@ -66,7 +66,7 @@ export default function VendorDetectionsModal({ item, onClose }) {
                   >
                     {copied ? 'Copied' : 'Copy'}
                   </button>
-                </span>
+                </div>
               </div>
               {vt?.suggestedThreatLabel && (
                 <div className="vt-sum-cell">

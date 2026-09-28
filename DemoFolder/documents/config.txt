@@ -1,0 +1,9 @@
+# Synthetic Demo Application Configuration
+app.environment=production
+app.debug=false
+app.telemetry=enabled
+cache.ttl_seconds=3600
+database.pool_size=10
+server.port=8080
+auth.jwt_issuer=local-auth-service
+logging.level=info

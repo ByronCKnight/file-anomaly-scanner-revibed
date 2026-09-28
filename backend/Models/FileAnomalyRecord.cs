@@ -16,6 +16,7 @@ namespace FileAnomalyScanner.Models
         public string DetectedType { get; set; } = string.Empty;
         public bool IsMagicByteMismatch { get; set; }
         public string Sha256Hash { get; set; } = string.Empty;
+        public string? TelemetryLookupHash { get; set; }
         public VirusTotalReport? VirusTotalResult { get; set; }
         public SafeBrowsingMatch? SafeBrowsingMatch { get; set; }
         public DateTime DetectedAt { get; set; } = DateTime.UtcNow;
