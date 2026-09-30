@@ -68,7 +68,12 @@ export default function App() {
           : !s.safeBrowsingConfigured
           ? 'Not Configured'
           : 'Disabled';
-        addLog(`[CONFIG] Threat Intel — VirusTotal: ${vtStatus} | Safe Browsing: ${sbStatus}.`);
+        const localAvStatus = !s.localAntivirusAvailable
+          ? 'Unavailable'
+          : s.localAntivirusEnabled
+          ? `Active (${s.localAntivirusEngine})`
+          : 'Disabled';
+        addLog(`[CONFIG] Threat Intel — VirusTotal: ${vtStatus} | Safe Browsing: ${sbStatus} | Local AV: ${localAvStatus}.`);
       }
     } catch {
       // Backend may be starting
@@ -125,7 +130,7 @@ export default function App() {
         setLogs((prev) => [...prev, ...scanReport.consoleLogs]);
       }
 
-      addLog(`[SCAN] [COMPLETE] Processed ${scanReport.summary.totalFilesScanned} files. Found ${scanReport.summary.totalAnomaliesFound} total findings (VT detections: ${scanReport.summary.virusTotalFlaggedCount || 0}, Safe Browsing: ${scanReport.summary.safeBrowsingThreatCount || 0}).`);
+      addLog(`[SCAN] [COMPLETE] Processed ${scanReport.summary.totalFilesScanned} files. Found ${scanReport.summary.totalAnomaliesFound} total findings (Local AV: ${scanReport.summary.localAntivirusFlaggedCount || 0}, VT detections: ${scanReport.summary.virusTotalFlaggedCount || 0}, Safe Browsing: ${scanReport.summary.safeBrowsingThreatCount || 0}).`);
     } catch (err) {
       addLog(`[SCAN] [ERROR] Scan failed: ${err.message}`);
     } finally {
@@ -207,6 +212,27 @@ export default function App() {
           <div className="threat-intel-indicators">
             <span
               className={`threat-pill ${
+                securitySettings?.localAntivirusAvailable && securitySettings?.localAntivirusEnabled
+                  ? 'pill-active'
+                  : !securitySettings?.localAntivirusAvailable
+                  ? 'pill-unconfigured'
+                  : 'pill-disabled'
+              }`}
+              title={
+                securitySettings?.localAntivirusAvailable
+                  ? `Offline scanning with ${securitySettings.localAntivirusEngine} via Windows AMSI`
+                  : securitySettings?.localAntivirusMessage || 'Local antivirus engine not detected'
+              }
+            >
+              Local AV: {securitySettings?.localAntivirusAvailable && securitySettings?.localAntivirusEnabled
+                ? 'Active'
+                : !securitySettings?.localAntivirusAvailable
+                ? 'Unavailable'
+                : 'Disabled'}
+            </span>
+
+            <span
+              className={`threat-pill ${
                 securitySettings?.virusTotalConfigured && securitySettings?.virusTotalEnabled
                   ? 'pill-active'
                   : !securitySettings?.virusTotalConfigured
@@ -252,9 +278,9 @@ export default function App() {
             type="button"
             className="btn btn-settings"
             onClick={() => setIsSettingsOpen(true)}
-            title="Configure VirusTotal and Google Safe Browsing API Keys"
+            title="Configure local antivirus, VirusTotal and Google Safe Browsing"
           >
-            API Settings
+            Scan Settings
           </button>
 
           <button

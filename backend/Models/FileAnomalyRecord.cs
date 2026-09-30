@@ -19,6 +19,7 @@ namespace FileAnomalyScanner.Models
         public string? TelemetryLookupHash { get; set; }
         public VirusTotalReport? VirusTotalResult { get; set; }
         public SafeBrowsingMatch? SafeBrowsingMatch { get; set; }
+        public LocalAntivirusReport? LocalAntivirusResult { get; set; }
         public DateTime DetectedAt { get; set; } = DateTime.UtcNow;
     }
 }

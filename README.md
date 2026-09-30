@@ -109,6 +109,14 @@ When a file is confirmed as an active threat, the application provides built-in 
 - **Malicious Script Signatures**: Detects base64-encoded PowerShell cradles, `DownloadString` / `Invoke-Expression` execution chains, and PHP webshell primitives (`eval(base64_decode)`, `passthru`, `system`).
 - **Container & Archive Inspection**: Unpacks and inspects nested `.zip`, `.jar`, `.apk`, and OpenXML archives for directory traversal and zip-bomb hazards.
 
+### 9. Offline Local Antivirus (No API Required)
+Real signature-based virus detection that works without internet access or API keys:
+- **Windows AMSI Engine**: Every file is scanned in memory through the Windows Antimalware Scan Interface (`amsi.dll`), using whichever antivirus is installed on the machine (Microsoft Defender by default).
+- **Nothing Leaves the Machine**: File bytes are never uploaded or written to disk for this check.
+- **Toggle & Self-Test**: Enable or disable it under **Scan Settings**. **Test Engine** scans the harmless EICAR test string to confirm the engine is responding.
+- **Scoring**: Detections are reported as Critical, add +60 to the local risk score, and appear under the **Local Antivirus Flagged** filter and the **Local AV** column.
+- **Limitations**: AMSI returns a detected / not-detected verdict only; the threat name is listed in Windows Security > Protection history. If Defender's real-time protection is off, detection may not work.
+
 ---
 
 ## Security Risk Analysis & Threat Modeling

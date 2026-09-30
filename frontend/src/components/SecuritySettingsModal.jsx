@@ -3,7 +3,8 @@ import {
   fetchSecuritySettings,
   updateSecuritySettings,
   testVirusTotalKey,
-  testSafeBrowsingKey
+  testSafeBrowsingKey,
+  testLocalAntivirus
 } from '../utils/apiService';
 
 export default function SecuritySettingsModal({ isOpen, onClose, onSettingsUpdated }) {
@@ -24,6 +25,9 @@ export default function SecuritySettingsModal({ isOpen, onClose, onSettingsUpdat
   const [sbCheckUrls, setSbCheckUrls] = useState(true);
   const [sbTestStatus, setSbTestStatus] = useState(null);
 
+  const [localAvEnabled, setLocalAvEnabled] = useState(true);
+  const [localAvTestStatus, setLocalAvTestStatus] = useState(null);
+
   const [saveMessage, setSaveMessage] = useState(null);
 
   useEffect(() => {
@@ -37,6 +41,7 @@ export default function SecuritySettingsModal({ isOpen, onClose, onSettingsUpdat
     setSaveMessage(null);
     setVtTestStatus(null);
     setSbTestStatus(null);
+    setLocalAvTestStatus(null);
     try {
       const data = await fetchSecuritySettings();
       if (data) {
@@ -45,6 +50,7 @@ export default function SecuritySettingsModal({ isOpen, onClose, onSettingsUpdat
         setVtMaxBatch(data.maxVirusTotalLookupsPerBatch || 5);
         setSbEnabled(data.safeBrowsingEnabled);
         setSbCheckUrls(data.checkEmbeddedUrlsWithSafeBrowsing);
+        setLocalAvEnabled(data.localAntivirusEnabled);
         setVtApiKey(''); // keep empty unless user types new key
         setSbApiKey('');
       }
@@ -93,6 +99,20 @@ export default function SecuritySettingsModal({ isOpen, onClose, onSettingsUpdat
     }
   };
 
+  const handleTestLocalAntivirus = async () => {
+    setLocalAvTestStatus({ testing: true, message: 'Scanning EICAR test string with local engine...' });
+    try {
+      const res = await testLocalAntivirus();
+      setLocalAvTestStatus({ testing: false, success: res.success, message: res.message });
+    } catch (e) {
+      setLocalAvTestStatus({
+        testing: false,
+        success: false,
+        message: e.message || 'Local antivirus test failed.'
+      });
+    }
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -102,7 +122,8 @@ export default function SecuritySettingsModal({ isOpen, onClose, onSettingsUpdat
       virusTotalEnabled: vtEnabled,
       maxVirusTotalLookupsPerBatch: parseInt(vtMaxBatch, 10) || 5,
       googleSafeBrowsingEnabled: sbEnabled,
-      checkEmbeddedUrlsWithSafeBrowsing: sbCheckUrls
+      checkEmbeddedUrlsWithSafeBrowsing: sbCheckUrls,
+      localAntivirusEnabled: localAvEnabled
     };
 
     if (vtApiKey.trim() !== '') {
@@ -138,9 +159,9 @@ export default function SecuritySettingsModal({ isOpen, onClose, onSettingsUpdat
         <div className="modal-header">
           <div className="modal-title-wrap">
             <div>
-              <h2 className="modal-title">Threat Intelligence &amp; Antivirus APIs</h2>
+              <h2 className="modal-title">Threat Intelligence &amp; Antivirus</h2>
               <p className="modal-subtitle">
-                Configure VirusTotal and Google Safe Browsing for real-time virus detection
+                Configure offline local antivirus, VirusTotal and Google Safe Browsing
               </p>
             </div>
           </div>
@@ -156,6 +177,30 @@ export default function SecuritySettingsModal({ isOpen, onClose, onSettingsUpdat
             <div className="modal-body">
               {/* Quick Status Bar */}
               <div className="threat-status-cards">
+                <div className="threat-card">
+                  <div className="threat-card-header">
+                    <span className="threat-card-title">Local Antivirus</span>
+                    <span
+                      className={`badge ${
+                        settings?.localAntivirusAvailable && localAvEnabled
+                          ? 'badge-sev-0'
+                          : !settings?.localAntivirusAvailable
+                          ? 'badge-unconfigured'
+                          : 'badge-disabled'
+                      }`}
+                    >
+                      {settings?.localAntivirusAvailable && localAvEnabled
+                        ? '● Offline Ready'
+                        : !settings?.localAntivirusAvailable
+                        ? '○ Unavailable'
+                        : '○ Disabled'}
+                    </span>
+                  </div>
+                  <div className="threat-card-desc">
+                    Scans every file in memory with the antivirus installed on this PC. No internet or API key needed.
+                  </div>
+                </div>
+
                 <div className="threat-card">
                   <div className="threat-card-header">
                     <span className="threat-card-title">VirusTotal v3</span>
@@ -201,6 +246,59 @@ export default function SecuritySettingsModal({ isOpen, onClose, onSettingsUpdat
                   </div>
                   <div className="threat-card-desc">
                     Scans embedded URLs in scripts &amp; documents against Google's global blacklist of malware &amp; phishing sites.
+                  </div>
+                </div>
+              </div>
+
+              {/* Local Antivirus Section */}
+              <div className="settings-section">
+                <div className="section-head">
+                  <div className="section-title-row">
+                    <span className="section-badge local-av-badge">Local Antivirus (Offline)</span>
+                    <label className="switch-label">
+                      <input
+                        type="checkbox"
+                        checked={localAvEnabled}
+                        onChange={(e) => setLocalAvEnabled(e.target.checked)}
+                        disabled={!settings?.localAntivirusAvailable}
+                      />
+                      <span>Enable Local Antivirus Scan</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <div className="input-with-actions">
+                    <div className="form-input local-av-engine" title={settings?.localAntivirusMessage}>
+                      {settings?.localAntivirusAvailable
+                        ? `Engine: ${settings.localAntivirusEngine}`
+                        : settings?.localAntivirusMessage || 'No local antivirus engine detected.'}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={handleTestLocalAntivirus}
+                      disabled={localAvTestStatus?.testing || !settings?.localAntivirusAvailable}
+                    >
+                      {localAvTestStatus?.testing ? 'Testing...' : 'Test Engine'}
+                    </button>
+                  </div>
+
+                  {localAvTestStatus && (
+                    <div
+                      className={`test-result-box ${
+                        localAvTestStatus.success ? 'test-success' : 'test-failure'
+                      }`}
+                    >
+                      {localAvTestStatus.success ? 'Success: ' : 'Error: '}
+                      {localAvTestStatus.message}
+                    </div>
+                  )}
+
+                  <div className="form-hint">
+                    Uses the Windows Antimalware Scan Interface (AMSI), usually backed by Microsoft Defender.
+                    File contents never leave this machine. Windows Security may show a notification when a threat
+                    (or the EICAR test) is detected.
                   </div>
                 </div>
               </div>

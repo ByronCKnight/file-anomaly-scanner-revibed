@@ -47,7 +47,8 @@ export default function AnomalyTable({ anomalies, summary, files, fileItems = []
     if (categoryFilter !== 'ALL') {
       if (categoryFilter === 'VIRUSTOTAL' && !item.category.includes('VirusTotal')) return false;
       if (categoryFilter === 'SAFEBROWSING' && !item.category.includes('Safe Browsing')) return false;
-      if (categoryFilter === 'HEURISTIC' && (item.category.includes('VirusTotal') || item.category.includes('Safe Browsing'))) return false;
+      if (categoryFilter === 'LOCALAV' && !item.category.includes('Local Antivirus')) return false;
+      if (categoryFilter === 'HEURISTIC' && (item.category.includes('VirusTotal') || item.category.includes('Safe Browsing') || item.category.includes('Local Antivirus'))) return false;
     }
 
     if (searchTerm.trim() !== '') {
@@ -181,6 +182,35 @@ export default function AnomalyTable({ anomalies, summary, files, fileItems = []
     return <span className="badge-disabled">—</span>;
   };
 
+  const renderLocalAvBadge = (item, showClean = false) => {
+    const av = item.localAntivirusResult || item.localAntivirus;
+    if (!av) return null;
+
+    if (av.isDetected) {
+      return (
+        <span className="badge-flag" title={`Flagged offline by ${av.engineName} (AMSI result ${av.resultCode})`}>
+          LOCAL AV: {av.status === 'BlockedByPolicy' ? 'BLOCKED' : 'MALWARE'}
+        </span>
+      );
+    }
+
+    if (!showClean) return null;
+
+    if (av.status === 'Clean') {
+      return (
+        <span className="badge-pass" title={`No threat found by ${av.engineName}`}>
+          CLEAN
+        </span>
+      );
+    }
+
+    return (
+      <span className="badge-disabled" title={av.errorMessage || av.status}>
+        {av.status === 'Disabled' ? 'OFF' : av.status === 'Unavailable' ? 'N/A' : 'ERROR'}
+      </span>
+    );
+  };
+
   const renderSafeBrowsingBadge = (item) => {
     const sbMatch = item.safeBrowsingMatch;
     const sbReport = item.safeBrowsing;
@@ -252,6 +282,12 @@ export default function AnomalyTable({ anomalies, summary, files, fileItems = []
             <span className="summary-val val-high">{summary.highCount || 0}</span>
           </div>
           <div className="summary-item">
+            <span className="summary-label">Local AV Detections:</span>
+            <span className={`summary-val ${summary.localAntivirusFlaggedCount > 0 ? 'val-critical font-bold' : ''}`}>
+              {summary.localAntivirusFlaggedCount || 0}
+            </span>
+          </div>
+          <div className="summary-item">
             <span className="summary-label">VirusTotal Detections:</span>
             <span className={`summary-val ${summary.virusTotalFlaggedCount > 0 ? 'val-critical font-bold' : ''}`}>
               {summary.virusTotalFlaggedCount || 0}
@@ -308,6 +344,7 @@ export default function AnomalyTable({ anomalies, summary, files, fileItems = []
                 className="filter-select"
               >
                 <option value="ALL">All Types</option>
+                <option value="LOCALAV">Local Antivirus Flagged (Offline)</option>
                 <option value="VIRUSTOTAL">VirusTotal Antivirus Flagged</option>
                 <option value="SAFEBROWSING">Google Safe Browsing Threats</option>
                 <option value="HEURISTIC">Heuristic &amp; Structural Anomalies</option>
@@ -392,6 +429,7 @@ export default function AnomalyTable({ anomalies, summary, files, fileItems = []
                         <div className="item-sub-title">{item.title}</div>
                       </td>
                       <td className="cell-threat-intel">
+                        {renderLocalAvBadge(item)}
                         {renderVtBadge(item)}
                         {renderSafeBrowsingBadge(item)}
                         {isEradicated ? (
@@ -462,6 +500,7 @@ export default function AnomalyTable({ anomalies, summary, files, fileItems = []
                 <th style={{ width: '160px' }}>SHA-256 Hash</th>
                 <th style={{ width: '70px' }}>Entropy</th>
                 <th style={{ width: '120px' }}>Type</th>
+                <th style={{ width: '100px' }}>Local AV</th>
                 <th style={{ width: '160px' }}>VirusTotal AV</th>
                 <th>Safe Browsing</th>
               </tr>
@@ -469,13 +508,13 @@ export default function AnomalyTable({ anomalies, summary, files, fileItems = []
             <tbody>
               {!files || files.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="table-empty">
+                  <td colSpan="9" className="table-empty">
                     No files scanned yet. Select or drop a folder to begin.
                   </td>
                 </tr>
               ) : filteredFiles.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="table-empty">
+                  <td colSpan="9" className="table-empty">
                     No files match the search criteria.
                   </td>
                 </tr>
@@ -542,6 +581,7 @@ export default function AnomalyTable({ anomalies, summary, files, fileItems = []
                       </td>
                       <td className="cell-entropy">{file.entropy ? `${file.entropy.toFixed(2)}` : '—'}</td>
                       <td>{file.detectedType || '—'}</td>
+                      <td>{renderLocalAvBadge(file, true) || '—'}</td>
                       <td>
                         {renderVtBadge(file)}
                         {isFileEradicated ? (

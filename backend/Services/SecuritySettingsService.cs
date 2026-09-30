@@ -41,7 +41,8 @@ namespace FileAnomalyScanner.Services
                 MaskedSafeBrowsingApiKey = MaskKey(s.GoogleSafeBrowsingApiKey),
                 SafeBrowsingEnabled = s.GoogleSafeBrowsingEnabled,
                 MaxVirusTotalLookupsPerBatch = s.MaxVirusTotalLookupsPerBatch,
-                CheckEmbeddedUrlsWithSafeBrowsing = s.CheckEmbeddedUrlsWithSafeBrowsing
+                CheckEmbeddedUrlsWithSafeBrowsing = s.CheckEmbeddedUrlsWithSafeBrowsing,
+                LocalAntivirusEnabled = s.LocalAntivirusEnabled
             };
         }
 
@@ -73,6 +74,10 @@ namespace FileAnomalyScanner.Services
                 if (request.CheckEmbeddedUrlsWithSafeBrowsing.HasValue)
                 {
                     _cachedSettings.CheckEmbeddedUrlsWithSafeBrowsing = request.CheckEmbeddedUrlsWithSafeBrowsing.Value;
+                }
+                if (request.LocalAntivirusEnabled.HasValue)
+                {
+                    _cachedSettings.LocalAntivirusEnabled = request.LocalAntivirusEnabled.Value;
                 }
 
                 var json = JsonSerializer.Serialize(_cachedSettings, new JsonSerializerOptions { WriteIndented = true });

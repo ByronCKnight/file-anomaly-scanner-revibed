@@ -14,22 +14,24 @@ namespace FileAnomalyScanner.Controllers
         private readonly ISecuritySettingsService _settingsService;
         private readonly IVirusTotalService _virusTotalService;
         private readonly ISafeBrowsingService _safeBrowsingService;
+        private readonly ILocalAntivirusService _localAntivirusService;
 
         public SettingsController(
             ISecuritySettingsService settingsService,
             IVirusTotalService virusTotalService,
-            ISafeBrowsingService safeBrowsingService)
+            ISafeBrowsingService safeBrowsingService,
+            ILocalAntivirusService localAntivirusService)
         {
             _settingsService = settingsService;
             _virusTotalService = virusTotalService;
             _safeBrowsingService = safeBrowsingService;
+            _localAntivirusService = localAntivirusService;
         }
 
         [HttpGet]
         public IActionResult GetSettings()
         {
-            var dto = _settingsService.GetSettingsDto();
-            return Ok(dto);
+            return Ok(BuildSettingsDto());
         }
 
         [HttpPost]
@@ -41,7 +43,7 @@ namespace FileAnomalyScanner.Controllers
             }
 
             await _settingsService.UpdateSettingsAsync(request);
-            var updated = _settingsService.GetSettingsDto();
+            var updated = BuildSettingsDto();
             return Ok(new
             {
                 success = true,
@@ -66,6 +68,22 @@ namespace FileAnomalyScanner.Controllers
         {
             var result = await _safeBrowsingService.TestConnectionAsync(req?.ApiKey, cancellationToken);
             return Ok(result);
+        }
+
+        [HttpPost("test-local-av")]
+        public ActionResult<TestApiResponse> TestLocalAntivirus()
+        {
+            return Ok(_localAntivirusService.RunSelfTest());
+        }
+
+        private SecuritySettingsDto BuildSettingsDto()
+        {
+            var dto = _settingsService.GetSettingsDto();
+            var avStatus = _localAntivirusService.GetStatus();
+            dto.LocalAntivirusAvailable = avStatus.Available;
+            dto.LocalAntivirusEngine = avStatus.EngineName;
+            dto.LocalAntivirusMessage = avStatus.Message;
+            return dto;
         }
     }
 }

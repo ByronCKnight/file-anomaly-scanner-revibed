@@ -10,6 +10,7 @@ namespace FileAnomalyScanner.Models
         public bool GoogleSafeBrowsingEnabled { get; set; } = true;
         public int MaxVirusTotalLookupsPerBatch { get; set; } = 5;
         public bool CheckEmbeddedUrlsWithSafeBrowsing { get; set; } = true;
+        public bool LocalAntivirusEnabled { get; set; } = true;
     }
 
     public class SecuritySettingsDto
@@ -22,6 +23,10 @@ namespace FileAnomalyScanner.Models
         public bool SafeBrowsingEnabled { get; set; }
         public int MaxVirusTotalLookupsPerBatch { get; set; }
         public bool CheckEmbeddedUrlsWithSafeBrowsing { get; set; }
+        public bool LocalAntivirusEnabled { get; set; }
+        public bool LocalAntivirusAvailable { get; set; }
+        public string LocalAntivirusEngine { get; set; } = string.Empty;
+        public string LocalAntivirusMessage { get; set; } = string.Empty;
     }
 
     public class UpdateSecuritySettingsRequest
@@ -32,6 +37,7 @@ namespace FileAnomalyScanner.Models
         public bool? GoogleSafeBrowsingEnabled { get; set; }
         public int? MaxVirusTotalLookupsPerBatch { get; set; }
         public bool? CheckEmbeddedUrlsWithSafeBrowsing { get; set; }
+        public bool? LocalAntivirusEnabled { get; set; }
     }
 
     public class TestApiRequest

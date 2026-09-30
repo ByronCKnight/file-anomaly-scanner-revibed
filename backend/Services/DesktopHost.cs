@@ -55,6 +55,7 @@ namespace FileAnomalyScanner.Services
             builder.Services.AddSingleton<ISecuritySettingsService, SecuritySettingsService>();
             builder.Services.AddHttpClient<IVirusTotalService, VirusTotalService>();
             builder.Services.AddHttpClient<ISafeBrowsingService, SafeBrowsingService>();
+            builder.Services.AddSingleton<ILocalAntivirusService, LocalAntivirusService>();
 
             builder.Services.AddSingleton<IMagicByteValidator, MagicByteValidator>();
             builder.Services.AddSingleton<IEntropyCalculator, EntropyCalculator>();

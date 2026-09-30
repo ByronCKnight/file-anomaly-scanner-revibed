@@ -18,6 +18,7 @@ namespace FileAnomalyScanner.Services
         {
             var vtFlagged = anomalies.Count(a => a.Category.Contains("VirusTotal", StringComparison.OrdinalIgnoreCase));
             var sbThreats = anomalies.Count(a => a.Category.Contains("Safe Browsing", StringComparison.OrdinalIgnoreCase));
+            var localAvFlagged = anomalies.Count(a => a.Category.Contains("Local Antivirus", StringComparison.OrdinalIgnoreCase));
             var zeroDayCount = files?.Count(f => f.IsNovelZeroDaySuspicion) ?? 0;
 
             var summary = new ScanSummaryDto
@@ -32,6 +33,7 @@ namespace FileAnomalyScanner.Services
                 InfoCount = anomalies.Count(a => a.Severity == AnomalySeverity.Info),
                 VirusTotalFlaggedCount = vtFlagged,
                 SafeBrowsingThreatCount = sbThreats,
+                LocalAntivirusFlaggedCount = localAvFlagged,
                 NovelZeroDayThreatCount = zeroDayCount,
                 DurationMs = Math.Round(durationMs, 2),
                 ScanCompletedAt = DateTime.UtcNow
@@ -45,6 +47,10 @@ namespace FileAnomalyScanner.Services
             if (vtFlagged > 0)
             {
                 consoleLogs.Add($"[{timestamp}] [THREAT INTEL] [ALERT] VirusTotal identified malware detections on {vtFlagged} file(s).");
+            }
+            if (localAvFlagged > 0)
+            {
+                consoleLogs.Add($"[{timestamp}] [LOCAL AV] [ALERT] Local antivirus engine detected malware in {localAvFlagged} file(s).");
             }
             if (sbThreats > 0)
             {

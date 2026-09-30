@@ -4,5 +4,6 @@
   "GoogleSafeBrowsingApiKey": "YOUR_GOOGLE_SAFE_BROWSING_API_KEY_HERE",
   "GoogleSafeBrowsingEnabled": true,
   "MaxVirusTotalLookupsPerBatch": 5,
-  "CheckEmbeddedUrlsWithSafeBrowsing": true
+  "CheckEmbeddedUrlsWithSafeBrowsing": true,
+  "LocalAntivirusEnabled": true
 }

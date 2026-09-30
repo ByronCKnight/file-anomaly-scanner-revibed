@@ -98,6 +98,15 @@ export async function testSafeBrowsingKey(apiKey = null) {
 }
 
 /**
+ * Runs an offline EICAR self-test against the local antivirus engine (Windows AMSI).
+ * @returns {Promise<any>}
+ */
+export async function testLocalAntivirus() {
+  const res = await fetch(`${API_SETTINGS}/test-local-av`, { method: 'POST' });
+  return await res.json();
+}
+
+/**
  * Uploads a list of files with their relative paths to the backend for scanning.
  *
  * @param {Array<{ file: File, relativePath: string }>} fileItems
@@ -120,6 +129,7 @@ export async function uploadAndScanFiles(fileItems, onProgress = null) {
   let totalDurationMs = 0;
   let vtFlaggedCount = 0;
   let sbThreatCount = 0;
+  let localAvFlaggedCount = 0;
 
   for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
     const start = batchIndex * BATCH_SIZE;
@@ -176,6 +186,7 @@ export async function uploadAndScanFiles(fileItems, onProgress = null) {
       totalDurationMs += batchReport.summary.durationMs || 0;
       vtFlaggedCount += batchReport.summary.virusTotalFlaggedCount || 0;
       sbThreatCount += batchReport.summary.safeBrowsingThreatCount || 0;
+      localAvFlaggedCount += batchReport.summary.localAntivirusFlaggedCount || 0;
     }
   }
 
@@ -199,6 +210,7 @@ export async function uploadAndScanFiles(fileItems, onProgress = null) {
       infoCount,
       virusTotalFlaggedCount: vtFlaggedCount,
       safeBrowsingThreatCount: sbThreatCount,
+      localAntivirusFlaggedCount: localAvFlaggedCount,
       durationMs: totalDurationMs,
       scanCompletedAt: new Date().toISOString()
     },

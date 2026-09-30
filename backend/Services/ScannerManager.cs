@@ -22,6 +22,7 @@ namespace FileAnomalyScanner.Services
         private readonly IReportGenerator _reportGenerator;
         private readonly IVirusTotalService _virusTotalService;
         private readonly ISafeBrowsingService _safeBrowsingService;
+        private readonly ILocalAntivirusService _localAntivirusService;
         private readonly ISecuritySettingsService _settingsService;
 
         public ScannerManager(
@@ -34,6 +35,7 @@ namespace FileAnomalyScanner.Services
             IReportGenerator reportGenerator,
             IVirusTotalService virusTotalService,
             ISafeBrowsingService safeBrowsingService,
+            ILocalAntivirusService localAntivirusService,
             ISecuritySettingsService settingsService)
         {
             _magicByteValidator = magicByteValidator;
@@ -45,6 +47,7 @@ namespace FileAnomalyScanner.Services
             _reportGenerator = reportGenerator;
             _virusTotalService = virusTotalService;
             _safeBrowsingService = safeBrowsingService;
+            _localAntivirusService = localAntivirusService;
             _settingsService = settingsService;
         }
 
@@ -62,6 +65,8 @@ namespace FileAnomalyScanner.Services
             var settings = _settingsService.GetSettings();
             bool vtActive = _virusTotalService.IsEnabledAndConfigured();
             bool sbActive = _safeBrowsingService.IsEnabledAndConfigured();
+            var localAvStatus = _localAntivirusService.GetStatus();
+            bool localAvActive = _localAntivirusService.IsEnabledAndAvailable();
 
             Log(consoleLogs, "INITIALIZE", "ScannerManager pipeline initialized. Ready to process batch.");
             if (vtActive)
@@ -82,6 +87,19 @@ namespace FileAnomalyScanner.Services
                 Log(consoleLogs, "THREAT INTEL", "Google Safe Browsing unconfigured or disabled. URL threats will not be verified remotely.");
             }
 
+            if (localAvActive)
+            {
+                Log(consoleLogs, "LOCAL AV", $"{localAvStatus.EngineName} active via Windows AMSI. Files will be scanned offline in memory.");
+            }
+            else if (!settings.LocalAntivirusEnabled)
+            {
+                Log(consoleLogs, "LOCAL AV", "Local antivirus scanning disabled in settings.");
+            }
+            else
+            {
+                Log(consoleLogs, "LOCAL AV", $"Local antivirus unavailable: {localAvStatus.Message}");
+            }
+
             var itemList = items.ToList();
 
             foreach (var item in itemList)
@@ -99,6 +117,7 @@ namespace FileAnomalyScanner.Services
                 var fileAnomalies = new List<FileAnomalyRecord>();
                 VirusTotalReport? vtReport = null;
                 SafeBrowsingReport? sbReport = null;
+                LocalAntivirusReport? localAvReport = null;
                 string sha256 = string.Empty;
                 string? proxyTelemetryHash = null;
 
@@ -233,7 +252,44 @@ namespace FileAnomalyScanner.Services
                         }
                     }
 
-                    // 6. Threat Intelligence: VirusTotal Antivirus Scan
+                    // 6. Offline Antivirus: Local engine via Windows AMSI (no network)
+                    if (localAvActive)
+                    {
+                        localAvReport = _localAntivirusService.ScanBuffer(displayPath, item.Content);
+
+                        if (localAvReport.IsDetected)
+                        {
+                            bool blockedByPolicy = localAvReport.Status == "BlockedByPolicy";
+                            Log(consoleLogs, "MALWARE", $"[CRITICAL] {localAvReport.EngineName} flagged '{displayPath}' as {(blockedByPolicy ? "blocked by administrator policy" : "malware")} (AMSI result {localAvReport.ResultCode}).");
+
+                            fileAnomalies.Add(new FileAnomalyRecord
+                            {
+                                FilePath = displayPath,
+                                FileName = item.FileName,
+                                FileSizeBytes = item.SizeBytes,
+                                Category = "Local Antivirus Detection",
+                                Title = blockedByPolicy
+                                    ? $"Blocked by {localAvReport.EngineName} Policy"
+                                    : $"Malware Detected by {localAvReport.EngineName}",
+                                Details = blockedByPolicy
+                                    ? $"The locally installed antivirus engine ({localAvReport.EngineName}) blocked this content under an administrator policy. Scanned offline via Windows AMSI."
+                                    : $"The locally installed antivirus engine ({localAvReport.EngineName}) identified this file as malicious. Scanned offline in memory via Windows AMSI; no data left this machine. See Windows Security > Protection history for the threat name.",
+                                Severity = blockedByPolicy ? AnomalySeverity.High : AnomalySeverity.Critical,
+                                Entropy = entropy,
+                                ClaimedExtension = ext,
+                                DetectedType = detectedType,
+                                Sha256Hash = sha256,
+                                TelemetryLookupHash = proxyTelemetryHash,
+                                LocalAntivirusResult = localAvReport
+                            });
+                        }
+                        else if (localAvReport.Status == "Error")
+                        {
+                            Log(consoleLogs, "LOCAL AV", $"[WARN] Local scan failed on '{displayPath}': {localAvReport.ErrorMessage}");
+                        }
+                    }
+
+                    // 7. Threat Intelligence: VirusTotal Antivirus Scan
                     bool isSuspiciousExt = ext is ".exe" or ".dll" or ".scr" or ".ps1" or ".bat" or ".vbs" or ".cmd" or ".jar";
                     bool shouldQueryVt = vtActive && (
                         fileAnomalies.Count > 0 ||
@@ -300,7 +356,7 @@ namespace FileAnomalyScanner.Services
                         };
                     }
 
-                    // 7. Threat Intelligence: Google Safe Browsing URL Scan
+                    // 8. Threat Intelligence: Google Safe Browsing URL Scan
                     if (sbActive && settings.CheckEmbeddedUrlsWithSafeBrowsing)
                     {
                         var extractedUrls = _safeBrowsingService.ExtractUrlsFromContent(item.Content);
@@ -338,8 +394,10 @@ namespace FileAnomalyScanner.Services
                         }
                     }
 
-                    // 8. Challenge 2: Composite Local Risk Score & Zero-Day Threat Arbiter
+                    // 9. Challenge 2: Composite Local Risk Score & Zero-Day Threat Arbiter
+                    bool localAvDetected = localAvReport?.IsDetected == true;
                     int localRiskScore = 0;
+                    if (localAvDetected) localRiskScore += 60;
                     if (fileAnomalies.Any(a => a.IsMagicByteMismatch)) localRiskScore += 40;
                     if (fileAnomalies.Any(a => a.Category.Contains("RTLO", StringComparison.OrdinalIgnoreCase) || a.Category.Contains("Double Extension", StringComparison.OrdinalIgnoreCase))) localRiskScore += 35;
                     if (fileAnomalies.Any(a => a.Category.Contains("AST", StringComparison.OrdinalIgnoreCase))) localRiskScore += 35;
@@ -350,7 +408,7 @@ namespace FileAnomalyScanner.Services
                     localRiskScore = Math.Min(100, localRiskScore);
 
                     bool isZeroDaySuspicion = false;
-                    if (vtReport?.Status == "NotFound" && (localRiskScore >= 35 || fileAnomalies.Any(a => a.Severity == AnomalySeverity.Critical)))
+                    if (!localAvDetected && vtReport?.Status == "NotFound" && (localRiskScore >= 35 || fileAnomalies.Any(a => a.Severity == AnomalySeverity.Critical)))
                     {
                         isZeroDaySuspicion = true;
                         Log(consoleLogs, "ZERO-DAY", $"[ALERT] '{displayPath}' is not listed on VirusTotal (NotFound) but scored {localRiskScore}/100 local risk score. Flagged as Zero-Day Suspicion.");
@@ -398,6 +456,7 @@ namespace FileAnomalyScanner.Services
                         DetectedType = detectedType,
                         VirusTotal = vtReport,
                         SafeBrowsing = sbReport,
+                        LocalAntivirus = localAvReport,
                         AnomalyCount = fileAnomalies.Count,
                         HighestSeverity = highestSev,
                         Status = fileStatus,

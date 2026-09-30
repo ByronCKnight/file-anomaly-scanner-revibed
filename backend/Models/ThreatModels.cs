@@ -19,6 +19,22 @@ namespace FileAnomalyScanner.Models
         public string? ErrorMessage { get; set; }
     }
 
+    public class LocalAntivirusReport
+    {
+        public string Status { get; set; } = "NotScanned"; // Clean, Detected, BlockedByPolicy, Unavailable, Disabled, Error, NotScanned
+        public bool IsDetected { get; set; }
+        public string EngineName { get; set; } = string.Empty;
+        public int ResultCode { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    public class LocalAntivirusStatus
+    {
+        public bool Available { get; set; }
+        public string EngineName { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+    }
+
     public class SafeBrowsingMatch
     {
         public string Url { get; set; } = string.Empty;
@@ -46,6 +62,7 @@ namespace FileAnomalyScanner.Models
         public string DetectedType { get; set; } = string.Empty;
         public VirusTotalReport? VirusTotal { get; set; }
         public SafeBrowsingReport? SafeBrowsing { get; set; }
+        public LocalAntivirusReport? LocalAntivirus { get; set; }
         public int AnomalyCount { get; set; }
         public AnomalySeverity HighestSeverity { get; set; } = AnomalySeverity.Info;
         public string Status { get; set; } = "Clean"; // Clean, Suspicious, Malicious, Anomalous, Novel Zero-Day Suspicion

@@ -836,6 +836,17 @@ body {
   color: #ffffff;
 }
 
+.section-badge.local-av-badge {
+  background-color: #6f42c1;
+  color: #ffffff;
+}
+
+.local-av-engine {
+  display: flex;
+  align-items: center;
+  cursor: default;
+}
+
 .switch-label {
   display: inline-flex;
   align-items: center;
